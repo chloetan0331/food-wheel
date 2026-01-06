@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍜 美食轮盘</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+        
+        .tab-btn {
+            padding: 12px 30px;
+            border: none;
+            background: #e0e0e0;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            padding: 8px 15px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .info-item strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+        
+        .wheel-wrapper {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            margin: 30px auto;
+        }
+        
+        .arrow {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff4757;
+            z-index: 100;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.2);
+            transition: transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+        
+        .center-circle {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 14px;
+            border: 3px solid #667eea;
+        }
+        
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .button-group {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        #spin-btn {
+            padding: 18px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        #spin-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        #spin-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        #result {
+            text-align: center;
+            font-size: 26px;
+            color: #667eea;
+            margin: 20px 0;
+            min-height: 40px;
+            font-weight: bold;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .closed-list {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .closed-list h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .closed-list p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .wheel-wrapper {
+                width: 350px;
+                height: 350px;
+            }
+            
+            .center-circle {
+                width: 60px;
+                height: 60px;
+                font-size: 11px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍜 今天吃什么？</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchMeal('lunch')">🌞 午餐</button>
+            <button class="tab-btn" onclick="switchMeal('dinner')">🌙 晚餐</button>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-row">
+                <div class="info-item">
+                    今天：<strong id="today"></strong>
+                </div>
+                <div class="info-item">
+                    营业店铺：<strong id="open-count"></strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="wheel-wrapper">
+            <div class="arrow"></div>
+            <div class="wheel" id="wheel">
+                <canvas id="wheelCanvas"></canvas>
+            </div>
+            <div class="center-circle">START</div>
+        </div>
+        
+        <div class="button-group">
+            <button id="spin-btn" onclick="spin()">🎲 转动轮盘</button>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div class="closed-list">
+            <h3>😴 今天休息的店铺</h3>
+            <p id="closed-list"></p>
+        </div>
+    </div>
+
+    <script>
+        const lunchRestaurants = [
+            { name: "阿雄鸡饭", restDays: [0] },
+            { name: "芋头饭", restDays: [1] },
+            { name: "咸粥", restDays: [] },
+            { name: "小猫鸭饭", restDays: [1] },
+            { name: "48大板", restDays: [4] },
+            { name: "西刀林", restDays: [1] },
+            { name: "面粉糕", restDays: [1] },
+            { name: "好友鸡饭", restDays: [] },
+            { name: "盛大厨", restDays: [] },
+            { name: "状元米线", restDays: [] },
+            { name: "爷爷湖南菜", restDays: [] },
+            { name: "东京", restDays: [] },
+            { name: "美食香", restDays: [] },
+            { name: "美芳", restDays: [1] },
+            { name: "砂煲鸡饭", restDays: [4] },
+            { name: "红中福建面", restDays: [1] },
+            { name: "I MUM MUM", restDays: [] },
+            { name: "田传", restDays: [2] },
+            { name: "佳佳", restDays: [6, 0] },
+            { name: "Ah Hong", restDays: [3] },
+            { name: "吴家庄", restDays: [2] },
+            { name: "MALA MASTER", restDays: [] },
+            { name: "Inderawasih", restDays: [] },
+            { name: "Chai Leng Park", restDays: [] },
+            { name: "咖喱鱼头", restDays: [] },
+            { name: "小李酸菜鱼", restDays: [] },
+            { name: "唐小龙", restDays: [] },
+            { name: "Empat Sekawan", restDays: [] },
+            { name: "Rutin", restDays: [] },
+            { name: "红屋", restDays: [3] },
+            { name: "GuanSeng 粥", restDays: [] }
+        ];
+
+        const dinnerRestaurants = [
+            { name: "水晶宫tomyam", restDays: [] },
+            { name: "水晶宫砂煲鸡饭", restDays: [] },
+            { name: "水晶宫咖喱面", restDays: [] },
+            { name: "水晶宫大板", restDays: [] },
+            { name: "光华tomyam", restDays: [1] },
+            { name: "朝阳", restDays: [1] },
+            { name: "旺来", restDays: [4] },
+            { name: "夜来香炒粿条", restDays: [4] },
+            { name: "盛大厨", restDays: [] },
+            { name: "状元米线", restDays: [] },
+            { name: "红辣椒", restDays: [] },
+            { name: "爷爷湖南菜", restDays: [] },
+            { name: "东京", restDays: [] },
+            { name: "美食香", restDays: [] },
+            { name: "Burger malas", restDays: [0] },
+            { name: "juheng", restDays: [2] },
+            { name: "bak kut teh", restDays: [4] },
+            { name: "I MUM MUM", restDays: [] },
+            { name: "佳佳", restDays: [0] },
+            { name: "吴家庄", restDays: [2] },
+            { name: "麻辣大伯公", restDays: [] },
+            { name: "MALA MASTER", restDays: [] },
+            { name: "晋铨", restDays: [] },
+            { name: "Chai Leng Park", restDays: [] },
+            { name: "小李酸菜鱼", restDays: [] },
+            { name: "唐小龙", restDays: [] },
+            { name: "Empat Sekawan", restDays: [] },
+            { name: "Rutin", restDays: [] },
+            { name: "阿来", restDays: [] },
+            { name: "咸鱼米粉", restDays: [1] }
+        ];
+
+        const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', 
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#C06C84',
+            '#6C5B7B', '#355C7D', '#2ECC71', '#E74C3C', '#3498DB',
+            '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#F39C12',
+            '#D35400', '#C0392B', '#BDC3C7', '#7F8C8D', '#27AE60',
+            '#2980B9', '#8E44AD', '#16A085', '#F1C40F', '#E84393'
+        ];
+        
+        let currentMeal = 'lunch';
+        let currentRotation = 0;
+        let isSpinning = false;
+        let canvas, ctx;
+
+        function getCurrentRestaurants() {
+            return currentMeal === 'lunch' ? lunchRestaurants : dinnerRestaurants;
+        }
+
+        function getOpenRestaurants() {
+            const today = new Date().getDay();
+            return getCurrentRestaurants().filter(r => !r.restDays.includes(today));
+        }
+
+        function getClosedRestaurants() {
+            const today = new Date().getDay();
+            return getCurrentRestaurants().filter(r => r.restDays.includes(today));
+        }
+
+        function switchMeal(meal) {
+            if (isSpinning) return;
+            
+            currentMeal = meal;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            init();
+        }
+
+        function init() {
+            const today = new Date().getDay();
+            document.getElementById('today').textContent = weekDays[today];
+            
+            const openRestaurants = getOpenRestaurants();
+            document.getElementById('open-count').textContent = openRestaurants.length;
+            
+            const closedRestaurants = getClosedRestaurants();
+            const closedNames = closedRestaurants.map(r => r.name).join('、');
+            document.getElementById('closed-list').textContent = 
+                closedNames || '今天所有店铺都营业！🎉';
+            
+            document.getElementById('result').textContent = '';
+            
+            canvas = document.getElementById('wheelCanvas');
+            const wheel = document.getElementById('wheel');
+            canvas.width = wheel.offsetWidth;
+            canvas.height = wheel.offsetHeight;
+            ctx = canvas.getContext('2d');
+            
+            drawWheel(openRestaurants);
+        }
+
+        function drawWheel(restaurants) {
+            if (!ctx) return;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY);
+            
+            if (restaurants.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ccc';
+                ctx.font = '18px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('今天无营业店铺', centerX, centerY);
+                return;
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const sliceAngle = (2 * Math.PI) / restaurants.length;
+            
+            restaurants.forEach((restaurant, index) => {
+                const startAngle = index * sliceAngle - Math.PI / 2;
+                const endAngle = startAngle + sliceAngle;
+                const midAngle = startAngle + sliceAngle / 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(midAngle);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Microsoft YaHei';
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 3;
+                ctx.fillText(restaurant.name, radius * 0.65, 5);
+                ctx.restore();
+            });
+        }
+
+        // 【核心修复】根据最终旋转角度计算箭头指向哪个扇形
+        function getPointedRestaurant(restaurants, finalRotation) {
+            const sliceAngle = 360 / restaurants.length;
+            
+            // 标准化旋转角度到 0-360 范围
+            const normalizedRotation = ((finalRotation % 360) + 360) % 360;
+            
+            // 箭头在顶部(0度)，轮盘顺时针旋转
+            // 轮盘旋转后，原本在顶部的扇形会移动到 normalizedRotation 的位置
+            // 现在箭头指向的扇形，在初始位置是 360 - normalizedRotation 的位置
+            const pointerAngle = (360 - normalizedRotation) % 360;
+            
+            // 计算这个角度属于哪个扇形
+            // 索引0的扇形占据 [0, sliceAngle)
+            // 索引1的扇形占据 [sliceAngle, 2*sliceAngle)
+            const index = Math.floor(pointerAngle / sliceAngle) % restaurants.length;
+            
+            return restaurants[index];
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            
+            const openRestaurants = getOpenRestaurants();
+            if (openRestaurants.length === 0) {
+                alert('今天所有店铺都休息！明天再来吧 😢');
+                return;
+            }
+            
+            isSpinning = true;
+            document.getElementById('spin-btn').disabled = true;
+            document.getElementById('result').textContent = '转转转... 🎰';
+            
+            const wheel = document.getElementById('wheel');
+            
+            // 随机转动圈数 (8-12圈)
+            const spins = 8 + Math.random() * 4;
+            
+            // 随机一个最终停止的角度 (0-360)
+            const randomEndAngle = Math.random() * 360;
+            
+            // 总旋转角度
+            const totalRotation = 360 * spins + randomEndAngle;
+            currentRotation += totalRotation;
+            
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+            
+            // 5秒后，根据最终角度计算箭头指向哪个店铺
+            setTimeout(() => {
+                const selected = getPointedRestaurant(openRestaurants, currentRotation);
+                const mealType = currentMeal === 'lunch' ? '午餐' : '晚餐';
+                document.getElementById('result').textContent = 
+                    `🎉 今天${mealType}就吃：${selected.name}！`;
+                
+                isSpinning = false;
+                document.getElementById('spin-btn').disabled = false;
+            }, 5000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
